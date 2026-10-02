@@ -21,6 +21,7 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(240, 260));
 
         var options = new[]
         {
@@ -43,7 +44,7 @@ public sealed partial class MainWindow : Window
         KeyBBox.SelectedItem = options[1];
         _isReady = true;
 
-        _proc = HookCallback;
+        _proc = HookCallback; // kept in a field so it isn't garbage-collected
         Closed += (_, _) => StopHook();
     }
 
@@ -62,7 +63,7 @@ public sealed partial class MainWindow : Window
         {
             var keyA = GetKey(KeyABox, -1);
             var keyB = GetKey(KeyBBox, -1);
-            if (keyA < 0 || keyB < 0)
+            if (keyA < 0 || keyB < 0 || keyA == keyB)
             {
                 SwapToggle.IsChecked = false;
                 return;
@@ -70,8 +71,14 @@ public sealed partial class MainWindow : Window
 
             _keyA = keyA;
             _keyB = keyB;
-            _hook = NativeMethods.SetWindowsHookEx(NativeMethods.WH_KEYBOARD_LL, _proc, IntPtr.Zero, 0);
-            if (_hook == IntPtr.Zero) { SwapToggle.IsChecked = false; return; }
+            _hook = NativeMethods.SetWindowsHookEx(
+                NativeMethods.WH_KEYBOARD_LL, _proc, NativeMethods.GetModuleHandle(null), 0);
+            if (_hook == IntPtr.Zero)
+            {
+                SwapToggle.IsChecked = false;
+                return;
+            }
+
             SwapToggle.Content = "Swap: ON";
             KeyABox.IsEnabled = KeyBBox.IsEnabled = false;
             return;
@@ -94,25 +101,25 @@ public sealed partial class MainWindow : Window
         if (nCode < 0) return NativeMethods.CallNextHookEx(_hook, nCode, wParam, lParam);
 
         var info = Marshal.PtrToStructure<NativeMethods.KBDLLHOOKSTRUCT>(lParam);
-        if ((info.flags & NativeMethods.LLKHF_INJECTED) != 0) return NativeMethods.CallNextHookEx(_hook, nCode, wParam, lParam);
+
+        // Ignore our own injected events so we don't loop.
+        if ((info.flags & NativeMethods.LLKHF_INJECTED) != 0)
+            return NativeMethods.CallNextHookEx(_hook, nCode, wParam, lParam);
 
         var msg = (uint)wParam;
         bool down = msg == NativeMethods.WM_KEYDOWN || msg == NativeMethods.WM_SYSKEYDOWN;
         bool up = msg == NativeMethods.WM_KEYUP || msg == NativeMethods.WM_SYSKEYUP;
-        if (!down && !up) return NativeMethods.CallNextHookEx(_hook, nCode, wParam, lParam);
+        if (!down && !up)
+            return NativeMethods.CallNextHookEx(_hook, nCode, wParam, lParam);
 
-        var target = info.vkCode == _keyA ? _keyB : info.vkCode == _keyB ? _keyA : 0;
-        if (target == 0) return NativeMethods.CallNextHookEx(_hook, nCode, wParam, lParam);
+        int target = info.vkCode == _keyA ? _keyB : info.vkCode == _keyB ? _keyA : 0;
+        if (target == 0)
+            return NativeMethods.CallNextHookEx(_hook, nCode, wParam, lParam);
 
-        var input = new NativeMethods.INPUT
-        {
-            type = NativeMethods.INPUT_KEYBOARD,
-            U = new NativeMethods.InputUnion
-            {
-                ki = new NativeMethods.KEYBDINPUT { wVk = (ushort)target, dwFlags = up ? NativeMethods.KEYEVENTF_KEYUP : 0 }
-            }
-        };
-        NativeMethods.SendInput(1, new[] { input }, Marshal.SizeOf<NativeMethods.INPUT>());
-        return (IntPtr)1;
+        // Send the replacement; only swallow the original if it was accepted.
+        if (NativeMethods.Send(target, up))
+            return (IntPtr)1;
+
+        return NativeMethods.CallNextHookEx(_hook, nCode, wParam, lParam);
     }
 }
