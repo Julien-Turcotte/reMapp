@@ -5,13 +5,9 @@
     Title="Key Swap">
     <StackPanel Spacing="10" Padding="16">
         <TextBlock Text="Key A" />
-        <ComboBox x:Name="KeyABox" SelectedIndex="0" SelectionChanged="OnSelectionChanged">
-            <ComboBoxItem Content="CapsLock" Tag="20" /><ComboBoxItem Content="Esc" Tag="27" /><ComboBoxItem Content="Tab" Tag="9" /><ComboBoxItem Content="LShift" Tag="160" /><ComboBoxItem Content="RShift" Tag="161" /><ComboBoxItem Content="LCtrl" Tag="162" /><ComboBoxItem Content="RCtrl" Tag="163" /><ComboBoxItem Content="LAlt" Tag="164" /><ComboBoxItem Content="RAlt" Tag="165" /><ComboBoxItem Content="Enter" Tag="13" /><ComboBoxItem Content="Backspace" Tag="8" />
-        </ComboBox>
+        <ComboBox x:Name="KeyABox" />
         <TextBlock Text="Key B" />
-        <ComboBox x:Name="KeyBBox" SelectedIndex="1" SelectionChanged="OnSelectionChanged">
-            <ComboBoxItem Content="CapsLock" Tag="20" /><ComboBoxItem Content="Esc" Tag="27" /><ComboBoxItem Content="Tab" Tag="9" /><ComboBoxItem Content="LShift" Tag="160" /><ComboBoxItem Content="RShift" Tag="161" /><ComboBoxItem Content="LCtrl" Tag="162" /><ComboBoxItem Content="RCtrl" Tag="163" /><ComboBoxItem Content="LAlt" Tag="164" /><ComboBoxItem Content="RAlt" Tag="165" /><ComboBoxItem Content="Enter" Tag="13" /><ComboBoxItem Content="Backspace" Tag="8" />
-        </ComboBox>
+        <ComboBox x:Name="KeyBBox" />
         <ToggleButton x:Name="SwapToggle" Content="Swap: OFF" Click="OnSwapToggleClick" />
     </StackPanel>
 </Window>
